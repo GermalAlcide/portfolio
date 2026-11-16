@@ -41,6 +41,17 @@ const Carousel = (() => {
     let drag = null;
     const sized = new Set(); // items with an inline height
 
+    // Download a photo only when it comes within a screen-width of view, so a
+    // folder of hundreds of photos never loads all at once.
+    const lazy = new IntersectionObserver((entries) => {
+      for (const en of entries) {
+        if (!en.isIntersecting) continue;
+        const img = en.target.querySelector("img");
+        if (!img.getAttribute("src")) img.src = img.dataset.src;
+        lazy.unobserve(en.target);
+      }
+    }, { root: carousel, rootMargin: "0px 100% 0px 100%" });
+
     let looping = false;
     let last = 0;
 
@@ -52,14 +63,14 @@ const Carousel = (() => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "carousel__item photo";
-      btn.style.aspectRatio = `${photo.width} / ${photo.height}`;
+      // Width is set from --h × --ar in CSS (Safari mis-sizes aspect-ratio flex items).
+      btn.style.setProperty("--ar", (photo.width / photo.height).toFixed(4));
       btn.dataset.index = index;
       btn.setAttribute("aria-label", `Enlarge photo ${index + 1}`);
       const img = new Image();
       img.alt = "";
       img.decoding = "async";
       img.draggable = false;
-      img.src = Photos.url(photo, 900);
       btn.append(img);
       return btn;
     }
@@ -89,6 +100,11 @@ const Carousel = (() => {
         rounds++;
       } while (setA.getBoundingClientRect().width < window.innerWidth * 2 && rounds < 60);
 
+      // Each photo at the size it is shown (big and small slots differ).
+      setA.querySelectorAll(".carousel__item").forEach((b) => {
+        b.querySelector("img").dataset.src = Photos.url(photoOf(b), Photos.fit(b.getBoundingClientRect().width));
+      });
+
       const setB = setA.cloneNode(true);
       const setC = setA.cloneNode(true);
       setA.setAttribute("aria-hidden", "true");
@@ -96,6 +112,8 @@ const Carousel = (() => {
       track.append(setB, setC);
       markLoaded(track);
       items = [...track.querySelectorAll(".carousel__item")];
+      lazy.disconnect();
+      items.forEach((b) => lazy.observe(b));
 
       const seen = new Set();
       items.forEach((b) => {
@@ -191,10 +209,10 @@ const Carousel = (() => {
     // ------------------------------------------------------------ focus
 
     function naturalHeight(el) {
-      const inline = el.style.height;
-      el.style.height = "";
+      const inline = el.style.getPropertyValue("--h");
+      el.style.removeProperty("--h");
       const h = el.getBoundingClientRect().height;
-      el.style.height = inline;
+      if (inline) el.style.setProperty("--h", inline);
       return h;
     }
 
@@ -216,7 +234,7 @@ const Carousel = (() => {
     }
 
     function applyHeights(entries, e) {
-      for (const en of entries) en.el.style.height = `${lerp(en.from, en.to, e)}px`;
+      for (const en of entries) en.el.style.setProperty("--h", `${lerp(en.from, en.to, e)}px`);
     }
 
     function stepFocus(now) {
@@ -227,7 +245,7 @@ const Carousel = (() => {
       x = lerp(a.fromCentre, a.toCentre, e) - (centreInTrack(a.anchor) + carousel.getBoundingClientRect().left);
       if (p >= 1) {
         focusAnim = null;
-        for (const el of sized) if (el !== active) { el.style.height = ""; sized.delete(el); }
+        for (const el of sized) if (el !== active) { el.style.removeProperty("--h"); sized.delete(el); }
       }
     }
 
@@ -237,7 +255,7 @@ const Carousel = (() => {
       applyHeights(s.entries, ease(p));
       x = s.centre - (centreInTrack(s.anchor) + carousel.getBoundingClientRect().left);
       if (p >= 1) {
-        for (const el of sized) el.style.height = "";
+        for (const el of sized) el.style.removeProperty("--h");
         sized.clear();
         shrink = null;
         measure();
@@ -247,7 +265,7 @@ const Carousel = (() => {
     function loadHiRes(item) {
       const img = item.querySelector("img");
       const photo = photoOf(item);
-      const px = Math.min(2400, activeHeight(item) * (photo.width / photo.height) * (window.devicePixelRatio || 1));
+      const px = Photos.fit(activeHeight(item) * (photo.width / photo.height));
       const hi = new Image();
       hi.onload = () => {
         if (item.classList.contains("is-active")) {

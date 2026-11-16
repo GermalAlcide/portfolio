@@ -13,9 +13,6 @@ window.SITE_CONFIG = {
   siteName: "Germalcide",
   instagram: "germalcide",
 
-  // Shown on the contact page if filled in, e.g. "hello@example.com".
-  contactEmail: "germal3002@gmail.com",
-
   driveApiKey: "AIzaSyAhALzlrp6HsMVjLp9cBmM4y4AS6Sn5tTA",
 
   // Home page carousel (My Website / Index Carousel). Shown in random order.
@@ -33,8 +30,4 @@ window.SITE_CONFIG = {
       galleryFolderId: "16DwJ5Kd1qlFxzgxp2rTwsxhducEmirlX",
     },
   ],
-
-  // URL of the deployed Google Apps Script web app that receives contact
-  // messages (see google-apps-script.gs). Empty = form runs in demo mode.
-  formEndpoint: "",
 };

@@ -36,7 +36,7 @@
   let photos = [];
   let rendered = 0;
   let index = 0;
-  const lbWidth = () => Math.min(2400, window.innerWidth * (window.devicePixelRatio || 1));
+  const lbWidth = () => Photos.fit(window.innerWidth);
 
   // ---------- grid, in batches ----------
 

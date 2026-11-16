@@ -4,6 +4,7 @@
  *
  *   Photos.load(folderId)   → [{ id, name, width, height }] in file-name order
  *   Photos.url(photo, px)   → image URL roughly `px` wide
+ *   Photos.fit(cssPx)       → pixel width to request for something cssPx wide on this screen
  *   Photos.shuffle(list)    → new array in random order
  */
 const Photos = (() => {
@@ -44,6 +45,14 @@ const Photos = (() => {
     return `https://lh3.googleusercontent.com/d/${photo.id}=w${Math.round(px)}`;
   }
 
+  // Twice the shown size: Google over-sharpens small copies (gritty skin,
+  // jagged hair); a 2× copy shrunk by the browser matches the original.
+  // Screen sharpness capped at 2×: 3× phone screens show no visible difference.
+  function fit(cssPx) {
+    const px = cssPx * Math.min(window.devicePixelRatio || 1, 2) * 2;
+    return Math.min(2400, Math.ceil(px / 50) * 50);
+  }
+
   function shuffle(list) {
     const a = list.slice();
     for (let i = a.length - 1; i > 0; i--) {
@@ -53,5 +62,5 @@ const Photos = (() => {
     return a;
   }
 
-  return { load, url, shuffle };
+  return { load, url, fit, shuffle };
 })();
